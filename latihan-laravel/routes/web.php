@@ -32,3 +32,15 @@ use App\Http\Controllers\MatakuliahController;
 
 Route::get('/matakuliah', [MatakuliahController::class, 'index'])->name('matakuliah.index');
 Route::get('/matakuliah/{kode}', [MatakuliahController::class, 'show'])->name('matakuliah.show');
+
+use App\Http\Controllers\MahasiswaWebController; 
+ 
+Route::get('/mahasiswa-data', [MahasiswaWebController::class, 'index'])
+    ->name('mahasiswa.data'); 
+
+// Route khusus harus diletakkan sebelum route dengan parameter
+Route::get('/mahasiswa/top-ipk', [MahasiswaWebController::class, 'topIpk'])
+    ->name('mahasiswa.top-ipk');
+
+Route::get('/mahasiswa/{mahasiswa}', [MahasiswaWebController::class, 'show'])
+    ->name('mahasiswa.detail');
