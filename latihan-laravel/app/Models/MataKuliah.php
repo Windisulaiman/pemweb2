@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MataKuliah extends Model
 {
@@ -14,4 +15,16 @@ class MataKuliah extends Model
         'sks',
         'semester',
     ];
+
+    public function mahasiswas(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Mahasiswa::class,
+            'mahasiswa_matakuliah',
+            'matakuliah_id',
+            'mahasiswa_id'
+        )
+        ->withPivot('nilai')
+        ->withTimestamps();
+    }
 }
