@@ -5,7 +5,10 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,25 +18,53 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Registrasi Alias Middleware Sanctum & Custom Middleware
+        $middleware->alias([
+            'abilities'   => CheckAbilities::class,
+            'ability'     => CheckForAnyAbility::class,
+            'peran.admin' => \App\Http\Middleware\PeranAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+
+        // 404 - Sumber daya tidak ditemukan
+        $exceptions->render(function (
+            NotFoundHttpException $e,
+            Request $request
+        ) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'sukses' => false,
-                    'pesan' => 'Sumber daya tidak ditemukan',
+                    'pesan'  => 'Sumber daya tidak ditemukan',
                 ], 404);
             }
         });
 
-        $exceptions->render(function (ValidationException $e, Request $request) {
+        // 422 - Data tidak valid
+        $exceptions->render(function (
+            ValidationException $e,
+            Request $request
+        ) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'sukses' => false,
-                    'pesan' => 'Data yang dikirim tidak valid',
-                    'galat' => $e->errors(),
+                    'pesan'  => 'Data yang dikirim tidak valid',
+                    'galat'  => $e->errors(),
                 ], 422);
             }
         });
+
+        // 401 - Token tidak valid atau belum dikirim
+        $exceptions->render(function (
+            AuthenticationException $e,
+            Request $request
+        ) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'sukses' => false,
+                    'pesan'  => 'Token tidak valid atau belum dikirim',
+                ], 401);
+            }
+        });
+
     })->create();
