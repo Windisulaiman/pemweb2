@@ -15,25 +15,41 @@ import (
 )
 
 func main() {
+	// 1. Muat konfigurasi dari .env
 	konf := config.Muat()
+
+	// 2. Verifikasi konfigurasi (sementara, untuk debug)
+	log.Printf("Aplikasi: %s | Port: %s | Lingkungan: %s", konf.NamaAplikasi, konf.Port, konf.Lingkungan)
+	log.Printf("DB: user=%q host=%s port=%s nama=%s", konf.DbUser, konf.DbHost, konf.DbPort, konf.DbNama)
+
+	// 3. Koneksi database + migrasi + data awal
+	config.HubungkanBasisData(konf)
+	config.Migrasi()
+	config.DataAwal()
+
+	if config.DB == nil {
+		log.Fatal("FATAL: config.DB masih nil setelah HubungkanBasisData. Periksa konfigurasi .env dan koneksi MySQL.")
+	}
+
+	// 4. Inisialisasi Fiber
 	app := fiber.New(fiber.Config{
 		AppName:      konf.NamaAplikasi,
 		ErrorHandler: penanganGalat,
 	})
 
-	// 1. Middleware Global Bawaan
+	// 5. Middleware Global Bawaan
 	app.Use(requestid.New())
 	app.Use(logger.New())
 	app.Use(recoverer.New())
 	app.Use(middleware.WaktuProses())
 
-	// 2. [TUGAS 3] Pasang middleware KunciApi SEBELUM router
+	// 6. [TUGAS 3] Pasang middleware KunciApi SEBELUM router
 	app.Use(middleware.KunciApi(konf.ApiKey))
 
-	// 3. Registrasi Router
+	// 7. Registrasi Router
 	router.Daftarkan(app)
 
-	// 4. [Langkah 10] Middleware Wildcard 404 (Dipasang Paling Akhir)
+	// 8. Middleware Wildcard 404 (Dipasang Paling Akhir)
 	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"sukses": false,
@@ -41,6 +57,8 @@ func main() {
 		})
 	})
 
+	// 9. Jalankan server
+	log.Printf("Server berjalan di http://localhost:%s", konf.Port)
 	log.Fatal(app.Listen(":" + konf.Port))
 }
 
@@ -52,6 +70,9 @@ func penanganGalat(c fiber.Ctx, err error) error {
 	if errors.As(err, &galatFiber) {
 		kode = galatFiber.Code
 		pesan = galatFiber.Message
+	} else {
+		// Log error asli untuk debugging
+		log.Printf("[ERROR] %v", err)
 	}
 
 	return c.Status(kode).JSON(fiber.Map{
