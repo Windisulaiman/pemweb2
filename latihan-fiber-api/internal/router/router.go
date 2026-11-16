@@ -2,6 +2,7 @@ package router
 
 import (
 	"latihan-fiber-api/internal/handler"
+	"latihan-fiber-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -16,22 +17,18 @@ func Daftarkan(app *fiber.App) {
 		})
 	})
 
-	mahasiswa := api.Group("/mahasiswa")
+	api.Post("/auth/registrasi", handler.Registrasi)
+	api.Post("/auth/login", handler.Login)
 
+	terlindungi := api.Group("", middleware.Autentikasi())
+	terlindungi.Get("/auth/profil", handler.Profil)
+	terlindungi.Post("/auth/segarkan", handler.Segarkan)
+	terlindungi.Post("/auth/logout", handler.Logout)
+
+	mahasiswa := terlindungi.Group("/mahasiswa")
 	mahasiswa.Get("/", handler.DaftarMahasiswa)
-	mahasiswa.Post("/", handler.BuatMahasiswa)
 	mahasiswa.Get("/:id", handler.DetailMahasiswa)
-	mahasiswa.Put("/:id", handler.PerbaruiMahasiswa)
-	mahasiswa.Delete("/:id", handler.HapusMahasiswa)
-	mahasiswa.Post("/:id/pulihkan", handler.PulihkanMahasiswa)
-
-	matakuliah := api.Group("/matakuliah")
-	matakuliah.Get("/", handler.DaftarMatakuliah)
-	matakuliah.Post("/", handler.BuatMatakuliah)
-	matakuliah.Get("/:id", handler.DetailMatakuliah)
-	matakuliah.Put("/:id", handler.PerbaruiMatakuliah)
-	matakuliah.Delete("/:id", handler.HapusMatakuliah)
-
-	programStudi := api.Group("/program-studi")
-	programStudi.Get("/", handler.DaftarProgramStudi)
+	mahasiswa.Post("/", handler.BuatMahasiswa, middleware.HanyaPeran("admin", "dosen"))
+	mahasiswa.Put("/:id", handler.PerbaruiMahasiswa, middleware.HanyaPeran("admin", "dosen"))
+	mahasiswa.Delete("/:id", handler.HapusMahasiswa, middleware.HanyaPeran("admin"))
 }

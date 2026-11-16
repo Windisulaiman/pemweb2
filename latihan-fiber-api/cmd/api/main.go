@@ -41,7 +41,7 @@ func main() {
 	app.Use(requestid.New())
 	app.Use(logger.New())
 	app.Use(recoverer.New())
-	app.Use(middleware.WaktuProses())
+	//app.Use(middleware.WaktuProses())
 
 	// 6. [TUGAS 3] Pasang middleware KunciApi SEBELUM router
 	app.Use(middleware.KunciApi(konf.ApiKey))
@@ -70,9 +70,10 @@ func penanganGalat(c fiber.Ctx, err error) error {
 	if errors.As(err, &galatFiber) {
 		kode = galatFiber.Code
 		pesan = galatFiber.Message
-	} else {
-		// Log error asli untuk debugging
-		log.Printf("[ERROR] %v", err)
+	}
+
+	if kode == fiber.StatusInternalServerError {
+		log.Println("Galat internal:", err.Error())
 	}
 
 	return c.Status(kode).JSON(fiber.Map{
